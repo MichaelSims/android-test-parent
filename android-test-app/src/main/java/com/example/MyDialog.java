@@ -11,7 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.example.events.GeneralEvent;
+import com.example.events.ResultEvent;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
 
@@ -43,7 +43,10 @@ public class MyDialog extends DialogFragment {
 
     @SuppressWarnings("UnusedDeclaration")
     @Subscribe
-    public void consumeTheEvent(GeneralEvent event) {
+    public void consumeTheEvent(ResultEvent event) {
+        if (!event.getRequestId().equals(MyDialog.class)) {
+            return;
+        }
         Toast.makeText(getActivity(), "I got the event!", Toast.LENGTH_SHORT).show();
         dialogText.setText("It was done");
         dialogText.postDelayed(new Runnable() {
@@ -64,7 +67,7 @@ public class MyDialog extends DialogFragment {
             @Override
             public void onClick(View v) {
                 dialogText.setText("Work is dispatched");
-                eventProducer.doSomeBackgroundWorkThenBroadcast();
+                eventProducer.doSomeBackgroundWorkThenBroadcast(MyDialog.class);
             }
         });
 
