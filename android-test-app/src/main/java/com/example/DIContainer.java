@@ -13,6 +13,7 @@ public class DIContainer {
     private Bus bus;
     private SingletonEventProducer eventProducer;
     private UIThreadExecutor uiThreadExecutor;
+    private IdGenerator idGenerator;
 
     public DIContainer(Application application) {
         this.application = application;
@@ -49,5 +50,12 @@ public class DIContainer {
             uiThreadExecutor = new UIThreadExecutor(new Handler(Looper.getMainLooper()));
         }
         return uiThreadExecutor;
+    }
+
+    public synchronized IdGenerator getIdGenerator() {
+        if (idGenerator == null) {
+            idGenerator = new IdGenerator();
+        }
+        return idGenerator;
     }
 }
