@@ -11,15 +11,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.example.events.ResultEvent;
-import com.squareup.otto.Bus;
-import com.squareup.otto.Subscribe;
+import com.example.taskexecutor.DefaultTaskExecutionListener;
+import com.example.taskexecutor.sticky.StickyTaskExecutor;
 
 public class MyDialog extends DialogFragment {
 
     private static final String TAG = MyDialog.class.getSimpleName();
-    private final Bus bus = DIContainer.getInstance().getBus();
-    private final SingletonEventProducer eventProducer = DIContainer.getInstance().getEventProducer();
+    private final StickyTaskExecutor<Object> stickyTaskExecutor = DIContainer.getInstance().getObjectStickyTaskExecutor();
 
     private TextView dialogText;
 
@@ -41,22 +39,6 @@ public class MyDialog extends DialogFragment {
         return super.onCreateDialog(savedInstanceState);
     }
 
-    @SuppressWarnings("UnusedDeclaration")
-    @Subscribe
-    public void consumeTheEvent(ResultEvent event) {
-        if (!event.getRequestId().equals(MyDialog.class)) {
-            return;
-        }
-        Toast.makeText(getActivity(), "I got the event!", Toast.LENGTH_SHORT).show();
-        dialogText.setText("It was done");
-        dialogText.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                dismiss();
-            }
-        }, 1000);
-    }
-
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
         Log.e(TAG, "onCreateView");
@@ -67,7 +49,7 @@ public class MyDialog extends DialogFragment {
             @Override
             public void onClick(View v) {
                 dialogText.setText("Work is dispatched");
-                eventProducer.doSomeBackgroundWorkThenBroadcast(MyDialog.class);
+                stickyTaskExecutor.execute();
             }
         });
 
@@ -90,7 +72,24 @@ public class MyDialog extends DialogFragment {
     public void onStart() {
         Log.e(TAG, "onStart");
         super.onStart();
-        bus.register(this);
+        stickyTaskExecutor.register(new DefaultTaskExecutionListener<Object>() {
+            @Override
+            public void onPostExecute(Object result) {
+                Toast.makeText(getActivity(), "I got the event!", Toast.LENGTH_SHORT).show();
+                dialogText.setText("It was done");
+                dialogText.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        dismiss();
+                    }
+                }, 1000);
+            }
+
+            @Override
+            public void onError(RuntimeException exception) {
+                Toast.makeText(getActivity(), "Does it smell like updog in here to you?", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -121,7 +120,10 @@ public class MyDialog extends DialogFragment {
     public void onStop() {
         Log.e(TAG, "onStop");
         super.onStop();
-        bus.unregister(this);
+        if (isRemoving()) {
+            stickyTaskExecutor.cancel();
+        }
+        stickyTaskExecutor.unregisterLastListener();
     }
 
     @Override
