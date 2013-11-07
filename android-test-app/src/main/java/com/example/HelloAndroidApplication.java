@@ -16,5 +16,6 @@ public class HelloAndroidApplication extends Application {
                 Log.e(TAG, ">>> " + x);
             }
         });
+        DIContainer.initialize(this);
     }
 }
