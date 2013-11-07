@@ -7,8 +7,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Toast;
-import com.example.events.SpecificEventOne;
-import com.example.events.SpecificEventTwo;
+import com.example.events.GeneralEvent;
 import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
 
@@ -16,12 +15,21 @@ public class HelloAndroidActivity extends Activity {
 
     private final static String TAG = HelloAndroidActivity.class.getSimpleName();
 
+    private final static String EXTRA_INSTANCE_ID = "EXTRA_INSTANCE_ID";
+
     private final Bus bus = DIContainer.getInstance().getBus();
-    private final SingletonEventProducer eventProducer = DIContainer.getInstance().getEventProducer();
+    private final IdGenerator idGenerator = DIContainer.getInstance().getIdGenerator();
+    private int instanceId;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (savedInstanceState != null) {
+            instanceId = savedInstanceState.getInt(EXTRA_INSTANCE_ID);
+        } else {
+            instanceId = idGenerator.getUniqueId();
+        }
+        Log.e(TAG, "Instance id is " + instanceId);
         setContentView(R.layout.activity_main);
         View launchDialogButton = findViewById(R.id.launch_dialog_button);
         launchDialogButton.setOnClickListener(new View.OnClickListener() {
@@ -30,8 +38,6 @@ public class HelloAndroidActivity extends Activity {
                 FragmentTransaction ft = getFragmentManager().beginTransaction();
                 ft.add(new MyDialog(), "TAG");
                 ft.commit();
-                eventProducer.doSomeBackgroundWorkThenBroadcast(new SpecificEventOne());
-                eventProducer.doSomeBackgroundWorkThenBroadcast(new SpecificEventTwo());
             }
         });
     }
@@ -48,9 +54,18 @@ public class HelloAndroidActivity extends Activity {
         bus.unregister(this);
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(EXTRA_INSTANCE_ID, instanceId);
+    }
+
     @Subscribe
     @SuppressWarnings("UnusedDeclaration")
-    public void consumeEvent(SpecificEventOne event) {
+    public void consumeEvent(GeneralEvent event) {
+        if (event.getInstanceId() != instanceId) {
+            Log.e(TAG, "This ain't mine!");
+        }
         Log.e(TAG, "I got my event!");
         Toast.makeText(this, "I got my event!", Toast.LENGTH_SHORT).show();
     }

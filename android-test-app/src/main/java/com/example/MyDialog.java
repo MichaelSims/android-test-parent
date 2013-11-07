@@ -1,7 +1,6 @@
 package com.example;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
@@ -10,10 +9,19 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
+import com.example.events.GeneralEvent;
+import com.squareup.otto.Bus;
+import com.squareup.otto.Subscribe;
 
 public class MyDialog extends DialogFragment {
 
     private static final String TAG = MyDialog.class.getSimpleName();
+    private final Bus bus = DIContainer.getInstance().getBus();
+    private final SingletonEventProducer eventProducer = DIContainer.getInstance().getEventProducer();
+
+    private TextView dialogText;
 
     @Override
     public void onAttach(final Activity activity) {
@@ -30,16 +38,37 @@ public class MyDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(final Bundle savedInstanceState) {
         Log.e(TAG, "onCreateDialog");
-        return new AlertDialog.Builder(getActivity())
-                .setTitle("Dialog Title")
-                .setMessage("This is a message")
-                .show();
+        return super.onCreateDialog(savedInstanceState);
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    @Subscribe
+    public void consumeTheEvent(GeneralEvent event) {
+        Toast.makeText(getActivity(), "I got the event!", Toast.LENGTH_SHORT).show();
+        dialogText.setText("It was done");
+        dialogText.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                dismiss();
+            }
+        }, 1000);
     }
 
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
         Log.e(TAG, "onCreateView");
-        return super.onCreateView(inflater, container, savedInstanceState);
+
+        View layout = inflater.inflate(R.layout.dialog_layout, container, false);
+        dialogText = (TextView) layout.findViewById(R.id.dialog_text);
+        layout.findViewById(R.id.do_background_work).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialogText.setText("Work is dispatched");
+                eventProducer.doSomeBackgroundWorkThenBroadcast();
+            }
+        });
+
+        return layout;
     }
 
     @Override
@@ -58,6 +87,7 @@ public class MyDialog extends DialogFragment {
     public void onStart() {
         Log.e(TAG, "onStart");
         super.onStart();
+        bus.register(this);
     }
 
     @Override
@@ -88,6 +118,7 @@ public class MyDialog extends DialogFragment {
     public void onStop() {
         Log.e(TAG, "onStop");
         super.onStop();
+        bus.unregister(this);
     }
 
     @Override
