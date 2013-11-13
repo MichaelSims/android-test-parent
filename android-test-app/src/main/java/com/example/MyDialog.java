@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.example.taskexecutor.DefaultTaskExecutionListener;
+import com.example.taskexecutor.TaskExecutorFactory;
 import com.example.taskexecutor.sticky.StickyTaskExecutor;
 import com.example.taskexecutor.sticky.StickyTaskExecutorMap;
 
@@ -20,6 +21,7 @@ public class MyDialog extends DialogFragment {
     private static final String TAG = MyDialog.class.getSimpleName();
     private final StickyTaskExecutorMap<Object> stickyTaskExecutorMap = DIContainer.getInstance().getObjectStickyTaskExecutorMap();
     private StickyTaskExecutor<Object> stickyTaskExecutor;
+    private TaskExecutorFactory taskExecutorFactory = DIContainer.getInstance().getTaskExecutorFactory();
 
     private TextView dialogText;
 
@@ -51,7 +53,7 @@ public class MyDialog extends DialogFragment {
             @Override
             public void onClick(View v) {
                 dialogText.setText("Work is dispatched");
-                stickyTaskExecutor.execute();
+                stickyTaskExecutor.execute(taskExecutorFactory.create(new ObjectTask()));
             }
         });
 

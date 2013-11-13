@@ -4,11 +4,14 @@ import android.app.Application;
 import android.os.Handler;
 import android.os.Looper;
 import com.example.taskexecutor.DefaultTaskExecutor;
+import com.example.taskexecutor.ExecutorFactory;
 import com.example.taskexecutor.TaskExecutor;
+import com.example.taskexecutor.TaskExecutorFactory;
 import com.example.taskexecutor.sticky.StickyTaskExecutor;
 import com.example.taskexecutor.sticky.StickyTaskExecutorFactory;
 import com.example.taskexecutor.sticky.StickyTaskExecutorMap;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class DIContainer {
@@ -18,6 +21,7 @@ public class DIContainer {
     private IdGenerator idGenerator;
     private TaskExecutor<Object> objectTaskExecutor;
     private StickyTaskExecutorMap<Object> objectStickyTaskExecutorMap;
+    private TaskExecutorFactory taskExecutorFactory;
 
     public DIContainer(Application application) {
         this.application = application;
@@ -61,10 +65,22 @@ public class DIContainer {
             objectStickyTaskExecutorMap = new StickyTaskExecutorMap<Object>(new StickyTaskExecutorFactory<Object>() {
                 @Override
                 public StickyTaskExecutor<Object> create(Object key) {
-                    return new StickyTaskExecutor<Object>(getObjectTaskExecutor());
+                    return new StickyTaskExecutor<Object>(); // TODO do we really need this?
                 }
             }, 10);
         }
         return objectStickyTaskExecutorMap;
+    }
+
+    public synchronized TaskExecutorFactory getTaskExecutorFactory() {
+        if (taskExecutorFactory == null) {
+            taskExecutorFactory = new TaskExecutorFactory(new ExecutorFactory() {
+                @Override
+                public Executor create() {
+                    return Executors.newSingleThreadExecutor();
+                }
+            }, getUiThreadExecutor());
+        }
+        return taskExecutorFactory;
     }
 }

@@ -8,7 +8,7 @@ public class StickyTaskExecutor<T> {
 
     private static final String TAG = StickyTaskExecutor.class.getSimpleName();
 
-    private final TaskExecutor<T> taskExecutor;
+    private TaskExecutor<T> taskExecutor;
 
     private final TaskExecutionListener<T> sourceListener = new ProxyListener();
     private TaskExecutionListener<T> targetListener;
@@ -16,18 +16,15 @@ public class StickyTaskExecutor<T> {
     private T lastResult;
     private RuntimeException lastException;
 
-    public StickyTaskExecutor(TaskExecutor<T> taskExecutor) {
-        this.taskExecutor = taskExecutor;
-    }
-
     public <L extends TaskExecutionListener<T>> void register(L executionListener) {
         Log.e(TAG, executionListener + " is registered");
         targetListener = executionListener;
         takeLastResultsIfApplicable(executionListener);
     }
 
-    public void execute() {
+    public void execute(TaskExecutor<T> taskExecutor) {
         Log.e(TAG, "Calling delegate executor");
+        this.taskExecutor = taskExecutor;
         taskExecutor.execute(sourceListener);
     }
 
